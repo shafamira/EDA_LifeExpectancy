@@ -1,4 +1,4 @@
-# EDA_LifeExpectancy
+# Exploratory Data Analysis: LifeExpectancy
 **1) Correlation between dependent variable and independent variables**
 
 Dependent variable: Life.expectancy
