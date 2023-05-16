@@ -4,6 +4,7 @@
 Dependent variable: Life.expectancy
 
 Independent variables: Year, Adult.Mortality, infant.deaths, Alcohol, percentage.expenditure, Hepatitis.B, Measles, BMI, under.five.deaths, Polio, Total.expenditure, Diphtheria, HIV.AIDS, GDP, Population, thinness..1.19.years, thinness.5.9.years, Income.composition.of.resources, Schooling
+
 <img width="550" alt="image" src="https://github.com/shafamira/EDA_LifeExpectancy/assets/78345801/a00c1914-d80d-493b-9268-3e08c6043389">
 
 2) Statistical testing
