@@ -1,0 +1,241 @@
+```{r}
+# ==============GSLC 2==============
+# Alyza Rahima Pramudya - 2502032125
+# Faishal Kamil         - 2502001063
+# Shafa Amira Qonitatin - 2502009173
+# ==================================
+```
+
+
+```{r}
+# ========== 1. Correlation ============
+```
+
+
+```{r}
+df = read.csv("/Users/shafaqonitatingmail.com/Documents/Semester 4/Data Mining and Visualization/Life Expectancy Data.csv")
+```
+
+```{r}
+head(df)
+```
+```{r}
+names(df)
+```
+```{r}
+colSums(is.na(df))
+```
+```{r}
+df_numerical = df[, c("Life.expectancy", "Year", "Adult.Mortality", "infant.deaths", "Alcohol", "percentage.expenditure", "Hepatitis.B", "Measles", "BMI", "under.five.deaths", "Total.expenditure", "Diphtheria", "HIV.AIDS", "GDP", "Population", "thinness..1.19.years", "thinness.5.9.years", "Income.composition.of.resources", "Schooling")]
+cor(df_numerical)
+```
+
+```{r}
+library(reshape2)
+library(ggplot2)
+
+corr_melted <- melt(cor(df_numerical))
+ggplot(corr_melted, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "#DEFCF9", mid = "#3282B8", high = "#142850",
+                       name = "Pearson\nCorrelation") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.7, hjust = 1))
+
+```
+
+```{r}
+# Select numeric variables for calculating mean
+df_num <- df[, sapply(df, is.numeric)]
+
+#Calculate means of all the numeric variables
+colMeans(df_num, na.rm = TRUE)
+
+```
+
+```{r}
+# Impute missing values in numeric variables with mean
+for(i in names(df_num)) {
+  df_num[, i][is.na(df_num[, i])] = mean(df_num[, i], na.rm=TRUE)
+}
+colSums(is.na(df_num))
+```
+```{r}
+print(cor(df_num))
+```
+```{r}
+library(dplyr)
+
+# Melt correlation matrix
+corr_melted <- melt(cor(df_num))
+
+# Sort correlation values in descending order
+corr_melted_sorted <- corr_melted %>%
+  arrange(desc(value))
+
+# Print top 10 correlations
+head(corr_melted_sorted, 40)
+
+```
+
+```{r}
+ggplot(corr_melted, aes(x = Var1, y = Var2, fill = value)) + geom_tile() +
+  scale_fill_gradient2(low = "#DEFCF9", mid = "#3282B8", high = "#142850",
+  name = "Pearson\nCorrelation") + theme(axis.text.x = element_text(angle = 90, vjust = 0.7, hjust = 1))
+```
+
+```{r}
+# ========== 2. Statistical Testing ============
+```
+
+```{r}
+# Quantiles of a distribution
+# Filter invalid values
+df_stat <- df_num
+# Calculate the distribution quantiles of the filtered variables
+quantiles <- quantile(df_stat$Life.expectancy, probs = seq(0, 1, 0.25))
+# Show results
+quantiles
+```
+```{r}
+# calculate the probability (in z-score form) of the minimum value of the variable "life_expectancy" in a normal distribution that has the mean and standard deviation of the variable.
+minLE <- min(df_stat$Life.expectancy)
+maxLE <- max(df_stat$Life.expectancy)
+meanLE <- mean(df_stat$Life.expectancy)
+sdLE <- sd(df_stat$Life.expectancy)
+pMin <- pnorm( q = minLE, mean = meanLE, sd = sdLE)
+pMin
+```
+```{r}
+# calculate the quantiles of the normal distribution with mean (meanLE) and standard deviation (sdLE) for ten different probabilities, ranging from 0 to 1 with intervals of 0.1 using the qnorm() function
+qnorm(mean = meanLE, sd = sdLE, p = seq(0, 1, 0.1))
+```
+```{r}
+# statistical significant and p value
+# t-test for Life Expectancy
+t.test(df_stat$Life.expectancy, mu = 69.22493, alternative = "two.sided")
+```
+
+```{r}
+#========== 3. Predictive Modelling ===========
+```
+
+```{r}
+#A.Normalize data to have the same range of values 
+
+Max <- apply(df_num, 2, max) #counts the maximum value of each column in the dataset
+Min <- apply(df_num, 2, min) #counts the minimum value of each column in the dataset
+Max
+```
+```{r}
+Min
+```
+```{r}
+ #calculate the normalized data scale value by entering the minimum and maximum values of each column 
+scaled <- as.data.frame(scale(df_num, center = Min, scale = Max - Min))
+head(scaled)
+```
+```{r}
+#B. Split the dataset into train set and test set
+library(caTools)
+set.seed(42)
+split = sample.split(scaled$Life.expectancy, SplitRatio = 0.80) #train 80%, test 20%
+
+train <- subset(scaled, split == TRUE)
+test <- subset(scaled, split == FALSE)
+```
+
+```{r}
+#Create a formula for what columns will be fit to the model so that they are not written one by one
+n <- names(trainNN)
+f <- as.formula(paste("Life.expectancy ~", paste(n[!n %in% "Life.expectancy"], collapse = " + ")))
+f
+```
+
+```{r}
+#C. Create Predictive Model using Linear Regression [Faishal]
+modelLR <- lm(f,train)
+
+#shows summary statistics about the linear regression model
+summary(modelLR)
+```
+```{r}
+#shows a scatterplot of actual values against predicted values, residual plot, normal probability plot for residuals, and leverage plot
+plot(modelLR)
+```
+```{r}
+#create a data frame to compare the predicted value with the ground truth
+predictedLR <- predict(modelLR,test)
+resultsLR <- cbind(predictedLR,test$Life.expectancy) 
+colnames(resultsLR) <- c('Predicted Value','Ground Truth')
+resultsLR <- as.data.frame(resultsLR)
+resultsLR
+```
+```{r}
+#create a scatter plot between the predicted value (x-axis) and the true value (y-axis)
+plotLR <- ggplot(results,aes(x=resultsLR$`Predicted Value`,y=resultsLR$`Ground Truth`)) + geom_point() + stat_smooth() + xlab("Predicted Value") + ylab("Ground Truth")
+plotLR
+```
+```{r}
+#Calculate Mean Squared Error
+MSE_LR <- sum((resultsLR$`Predicted Value` - resultsLR$`Ground Truth`)^2)/nrow(test)
+MSE_LR
+```
+```{r}
+write.csv(scaled, "/Users/shafaqonitatingmail.com/Documents/Semester 4/Data Mining and Visualization/scaled.csv", row.names = FALSE)
+```
+
+```{r}
+#D. Create Predictive Model using Random Forest [Shafa]
+library(randomForest)
+
+modelRF <- randomForest(f,data=train)
+print(modelRF)
+```
+```{r}
+# importance of each predictor
+importance(modelRF) 
+```
+```{r}
+#create a data frame to compare the predicted value with the ground truth
+predictedRF <- predict(modelRF,test)
+resultsRF <- cbind(predictedRF,test$Life.expectancy) 
+colnames(resultsRF) <- c('Predicted Value','Ground Truth')
+resultsRF <- as.data.frame(resultsRF)
+resultsRF
+```
+```{r}
+#create a scatter plot between the predicted value (x-axis) and the true value (y-axis)
+plotRF <- ggplot(resultsRF,aes(x=resultsRF$`Predicted Value`,y=resultsRF$`Ground Truth`)) + geom_point() + stat_smooth() + xlab("Predicted Value") + ylab("Ground Truth")
+plotRF
+```
+```{r}
+#Calculate Mean Squared Error
+MSE_RF <- sum((resultsRF$`Predicted Value` - resultsRF$`Ground Truth`)^2)/nrow(test)
+MSE_RF
+```
+```{r}
+#E. Create Predictive Model using Support Vector Regression (SVR) [Alyza]
+library(e1071)
+
+modelSVR <- svm(f, data = train, type = "eps-regression", kernel = "radial")
+summary(modelSVR)
+```
+
+```{r}
+#create a data frame to compare the predicted value with the ground truth
+predictedSVR <- predict(modelSVR, newdata = test)
+resultsSVR <- cbind(predictedSVR,test$Life.expectancy) 
+colnames(resultsSVR) <- c('Predicted Value','Ground Truth')
+resultsSVR <- as.data.frame(resultsSVR)
+resultsSVR
+```
+```{r}
+#create a scatter plot between the predicted value (x-axis) and the true value (y-axis)
+plotSVR <- ggplot(resultsSVR,aes(x=resultsSVR$`Predicted Value`,y=resultsSVR$`Ground Truth`)) + geom_point() + stat_smooth() + xlab("Predicted Value") + ylab("Ground Truth")
+plotSVR
+```
+```{r}
+#Calculate Mean Squared Error
+MSE_SVR <- sum((resultsSVR$`Predicted Value` - resultsSVR$`Ground Truth`)^2)/nrow(test)
+MSE_SVR
+```
